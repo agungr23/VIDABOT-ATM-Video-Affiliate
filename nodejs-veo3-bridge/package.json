@@ -1,0 +1,32 @@
+{
+  "name": "vidabot-veo3-bridge",
+  "version": "1.0.0",
+  "description": "Node.js bridge for VEO 3 video generation using official Google GenAI SDK",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node veo3-bridge.js test-key 'A cat walking in a garden'",
+    "install-deps": "npm install @google/genai node-fetch express cors multer",
+    "server": "node server.js"
+  },
+  "dependencies": {
+    "@google/genai": "^1.14.0",
+    "node-fetch": "^3.3.2",
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "multer": "^1.4.4"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "keywords": [
+    "veo3",
+    "video-generation",
+    "google-genai",
+    "bridge",
+    "vidabot"
+  ],
+  "author": "VidaBot",
+  "license": "MIT"
+}
