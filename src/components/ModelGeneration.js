@@ -1008,10 +1008,28 @@ ${cleanModelDesc}, ${sceneDesc} in ${backgroundDesc}. The person maintains EXACT
             <p className="text-xs text-modern-gray-700 mb-2">
               VEO 3 adalah model AI video terbaru dari Google yang masih dalam tahap preview dan memerlukan akses khusus.
             </p>
+            {/* Production Info */}
+            {(process.env.NODE_ENV === 'production' || window.location.hostname !== 'localhost') && (
+              <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-3">
+                <div className="flex items-center">
+                  <span className="text-green-600 text-lg mr-2">✅</span>
+                  <div>
+                    <p className="text-xs font-semibold text-green-800">Production Mode - Vercel API</p>
+                    <p className="text-xs text-green-700">
+                      Video generation menggunakan Vercel API Routes. Fitur demo tersedia untuk testing, 
+                      video generation penuh tersedia jika API key memiliki akses VEO3.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
             <div className="text-xs text-modern-gray-600 space-y-1">
               <div>• ✅ API Key harus memiliki akses VEO 3 preview dari Google AI Studio</div>
               <div>• ✅ Request akses di: <a href="https://aistudio.google.com" target="_blank" rel="noopener noreferrer" className="underline hover:text-tiktok-pink font-medium">Google AI Studio</a></div>
               <div>• ✅ Jika belum ada akses, sistem akan menggunakan mock generation untuk testing</div>
+              {(process.env.NODE_ENV !== 'production' && window.location.hostname === 'localhost') && (
+                <div>• 🔧 Untuk video generation penuh, pastikan bridge server berjalan di localhost:3005</div>
+              )}
             </div>
           </div>
         </div>

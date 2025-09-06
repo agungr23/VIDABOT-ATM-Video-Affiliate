@@ -1,7 +1,23 @@
-// VEO3 Video Generation Service using Node.js Bridge
+// VEO3 Video Generation Service using Node.js Bridge or Vercel API
 class RealVEO3Service {
   constructor() {
-    this.bridgeUrl = 'http://localhost:3005';
+    // Determine bridge URL based on environment
+    const isProduction = process.env.NODE_ENV === 'production' || 
+                        window.location.hostname !== 'localhost';
+    
+    if (isProduction) {
+      // Use Vercel API routes in production
+      this.bridgeUrl = window.location.origin;
+      this.useVercelAPI = true;
+      console.log('🌐 Using Vercel API Routes for production');
+    } else {
+      // Use local bridge server in development
+      this.bridgeUrl = process.env.REACT_APP_BRIDGE_URL || 'http://localhost:3005';
+      this.useVercelAPI = false;
+      console.log('🏠 Using local bridge server for development');
+    }
+    
+    console.log('🔗 Bridge URL configured:', this.bridgeUrl);
   }
 
   /**
@@ -109,6 +125,20 @@ class RealVEO3Service {
    */
   async checkBridgeServer() {
     try {
+      // Check if running in production (Vercel, Netlify, etc.)
+      const isProduction = process.env.NODE_ENV === 'production' || 
+                          window.location.hostname !== 'localhost';
+      
+      if (isProduction) {
+        console.log('🌐 Running in production - using Vercel API routes');
+        // Check Vercel API health endpoint
+        const response = await fetch(`${this.bridgeUrl}/api/health`, {
+          method: 'GET'
+        });
+        console.log('✅ Vercel API health check:', response.status, response.ok);
+        return response.ok;
+      }
+
       console.log('🔍 Checking bridge server at:', `${this.bridgeUrl}/health`);
 
       // Create AbortController for timeout
@@ -133,7 +163,14 @@ class RealVEO3Service {
    * Mock video generation for testing
    */
   async mockGenerate(params) {
-    console.log('🎭 VEO3: Using mock generation for testing');
+    const isProduction = process.env.NODE_ENV === 'production' || 
+                        window.location.hostname !== 'localhost';
+    
+    if (isProduction) {
+      console.log('🌐 VEO3: Using mock generation in production environment');
+    } else {
+      console.log('🎭 VEO3: Using mock generation for testing');
+    }
 
     // Simulate processing time
     await new Promise(resolve => setTimeout(resolve, 2000));
@@ -146,6 +183,10 @@ class RealVEO3Service {
     const videoBlob = await response.blob();
     const videoUrl = URL.createObjectURL(videoBlob);
 
+    const description = isProduction 
+      ? 'Demo video - Video generation memerlukan backend server yang tidak tersedia di production'
+      : 'Mock video generated for testing';
+
     return {
       success: true,
       job_id: 'mock_job_' + Date.now(),
@@ -154,24 +195,168 @@ class RealVEO3Service {
       video_url: videoUrl,
       videoUrl: videoUrl,
       video_blob: videoBlob,
-      thumbnail_url: 'https://via.placeholder.com/640x360/4F46E5/FFFFFF?text=VEO3+Mock+Video',
+      thumbnail_url: 'https://via.placeholder.com/640x360/4F46E5/FFFFFF?text=Demo+Video',
       duration: 8,
       created_at: new Date().toISOString(),
       config: params.config,
       prompt: params.prompt,
-      enhanced_prompt: `Mock VEO 3 Generated: ${params.prompt}`,
+      enhanced_prompt: isProduction ? `Demo Video: ${params.prompt}` : `Mock VEO 3 Generated: ${params.prompt}`,
       used_imagen: !params.referenceImage,
-      description: `Mock video generated for testing${!params.referenceImage ? ' with Imagen-generated image' : ' with reference image'}`,
-      model: 'veo-3.0-generate-preview (mock)'
+      description: description,
+      model: isProduction ? 'demo-mode' : 'veo-3.0-generate-preview (mock)'
     };
   }
 
   /**
-   * Real VEO 3 generation using Node.js bridge
+   * Real VEO 3 generation using Node.js bridge or Vercel API
    * @param {Object} params - Generation parameters
    * @returns {Promise<Object>} Generation result
    */
   async realGenerate(params) {
+    const isProduction = process.env.NODE_ENV === 'production' || 
+                        window.location.hostname !== 'localhost';
+    
+    if (isProduction) {
+      return await this.generateWithVercelAPI(params);
+    } else {
+      return await this.generateWithBridge(params);
+    }
+  }
+
+  /**
+   * Generate video using Vercel API Routes
+   */
+  async generateWithVercelAPI(params) {
+    try {
+      console.log('🌐 Using Vercel API Routes for video generation');
+      
+      // Prepare request data for Vercel API
+      const requestData = {
+        apiKey: params.apiKey,
+        prompt: params.prompt,
+        config: params.config || {},
+        referenceImage: null
+      };
+
+      // Handle reference image if provided
+      if (params.referenceImage) {
+        console.log('🖼️ Processing reference image for Vercel API...');
+        
+        if (typeof params.referenceImage === 'string' && params.referenceImage.startsWith('data:')) {
+          requestData.referenceImage = params.referenceImage;
+        } else if (params.referenceImage.file instanceof File) {
+          // Convert File to base64 for API transmission
+          const base64 = await this.fileToBase64(params.referenceImage.file);
+          requestData.referenceImage = base64;
+        }
+      }
+
+      console.log('📡 Sending request to Vercel API...');
+      
+      // Send request to Vercel API
+      const response = await fetch('/api/generate-video', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestData)
+      });
+
+      if (!response.ok) {
+        throw new Error(`Vercel API error: ${response.statusText}`);
+      }
+
+      // Handle streaming response
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let result = null;
+      let buffer = '';
+
+      console.log('🔄 Reading Vercel API response stream...');
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value);
+        buffer += chunk;
+
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+
+        for (const line of lines) {
+          const trimmedLine = line.trim();
+          if (!trimmedLine) continue;
+
+          try {
+            const data = JSON.parse(trimmedLine);
+            
+            if (data.type === 'progress') {
+              console.log('📊 Vercel API Progress:', data.message);
+            } else if (data.type === 'result' && data.success) {
+              console.log('🎯 Vercel API Result received!');
+              result = data;
+            } else if (data.type === 'error') {
+              throw new Error(data.error);
+            }
+          } catch (parseError) {
+            console.warn('⚠️ Failed to parse Vercel API response:', parseError.message);
+          }
+        }
+      }
+
+      if (!result) {
+        throw new Error('No result received from Vercel API');
+      }
+
+      // Convert base64 video data to blob URL
+      const videoBlob = this.base64ToBlob(result.videoData, result.mimeType);
+      const videoUrl = URL.createObjectURL(videoBlob);
+
+      console.log('✅ Vercel API generation completed successfully');
+
+      return {
+        success: true,
+        job_id: 'vercel_job_' + Date.now(),
+        status: 'completed',
+        video_file: result.downloadUrl,
+        video_url: videoUrl,
+        videoUrl: videoUrl,
+        video_blob: videoBlob,
+        thumbnail_url: 'https://via.placeholder.com/640x360/4F46E5/FFFFFF?text=Vercel+API+Video',
+        duration: result.duration || 8,
+        created_at: new Date().toISOString(),
+        config: params.config,
+        prompt: params.prompt,
+        enhanced_prompt: `Vercel API Generated: ${params.prompt}`,
+        used_imagen: !params.referenceImage,
+        description: result.description || 'Video generated using Vercel API Routes',
+        model: result.model || 'veo-3.0-vercel-api'
+      };
+
+    } catch (error) {
+      console.error('❌ Vercel API generation error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Convert File to base64 string
+   */
+  async fileToBase64(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
+
+  /**
+  /**
+   * Generate video using local Node.js bridge
+   */
+  async generateWithBridge(params) {
     const BRIDGE_URL = 'http://localhost:3005';
 
     try {
@@ -358,9 +543,6 @@ class RealVEO3Service {
     const byteArray = new Uint8Array(byteNumbers);
     return new Blob([byteArray], { type: mimeType });
   }
-
-
-
 }
 
 // Export singleton instance
