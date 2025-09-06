@@ -62,7 +62,17 @@ class RealVEO3Service {
 
       // Test API key with bridge server
       console.log('🔍 Testing API key with bridge server...');
-      const testResponse = await fetch(`${this.bridgeUrl}/test-api-key`, {
+      
+      // Use correct endpoint path based on environment
+      const isProduction = process.env.NODE_ENV === 'production' || 
+                          window.location.hostname !== 'localhost';
+      const testEndpoint = isProduction ? 
+        `${this.bridgeUrl}/api/test-api-key` : 
+        `${this.bridgeUrl}/test-api-key`;
+      
+      console.log('📡 Testing with endpoint:', testEndpoint);
+      
+      const testResponse = await fetch(testEndpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -131,11 +141,11 @@ class RealVEO3Service {
       
       if (isProduction) {
         console.log('🌐 Running in production - using Vercel API routes');
-        // Check Vercel API health endpoint
-        const response = await fetch(`${this.bridgeUrl}/api/health`, {
+        // Check Vercel API debug endpoint instead of health
+        const response = await fetch(`${this.bridgeUrl}/api/debug`, {
           method: 'GET'
         });
-        console.log('✅ Vercel API health check:', response.status, response.ok);
+        console.log('✅ Vercel API debug check:', response.status, response.ok);
         return response.ok;
       }
 
