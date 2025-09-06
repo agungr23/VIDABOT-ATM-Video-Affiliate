@@ -543,15 +543,36 @@ class RealVEO3Service {
    * @returns {Blob} Blob object
    */
   base64ToBlob(base64, mimeType) {
-    const byteCharacters = atob(base64);
-    const byteNumbers = new Array(byteCharacters.length);
+    try {
+      console.log('🔄 Converting base64 to blob:', { 
+        base64Length: base64.length, 
+        mimeType: mimeType 
+      });
+      
+      // Remove data URL prefix if present
+      const cleanBase64 = base64.replace(/^data:.*,/, '');
+      
+      const byteCharacters = atob(cleanBase64);
+      const byteNumbers = new Array(byteCharacters.length);
 
-    for (let i = 0; i < byteCharacters.length; i++) {
-      byteNumbers[i] = byteCharacters.charCodeAt(i);
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+      }
+
+      const byteArray = new Uint8Array(byteNumbers);
+      const blob = new Blob([byteArray], { type: mimeType || 'video/mp4' });
+      
+      console.log('✅ Blob created successfully:', {
+        size: blob.size,
+        type: blob.type
+      });
+      
+      return blob;
+    } catch (error) {
+      console.error('❌ Error converting base64 to blob:', error);
+      // Fallback: create empty blob
+      return new Blob([], { type: mimeType || 'video/mp4' });
     }
-
-    const byteArray = new Uint8Array(byteNumbers);
-    return new Blob([byteArray], { type: mimeType });
   }
 }
 
