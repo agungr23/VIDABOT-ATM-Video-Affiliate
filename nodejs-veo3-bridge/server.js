@@ -47,6 +47,65 @@ app.get('/health', (req, res) => {
     });
 });
 
+// Test API key endpoint
+app.post('/test-api-key', async (req, res) => {
+    try {
+        const { apiKey } = req.body;
+        
+        if (!apiKey) {
+            return res.status(400).json({
+                success: false,
+                error: 'API key is required'
+            });
+        }
+
+        // Basic format validation
+        if (!apiKey.startsWith('AIza') || apiKey.length < 20) {
+            return res.status(400).json({
+                success: false,
+                error: 'Invalid API key format. Must start with AIza and be at least 20 characters.'
+            });
+        }
+
+        // Test with a simple request to validate the API key
+        const ai = new GoogleGenAI({ apiKey });
+        
+        try {
+            // Try a simple model list request to validate the key
+            const models = await ai.models.list();
+            console.log('✅ API key test successful, found models:', models.length || 'unknown');
+            
+            res.json({
+                success: true,
+                message: 'API key is valid and working'
+            });
+        } catch (apiError) {
+            console.error('❌ API key validation failed:', apiError.message);
+            
+            let errorMessage = 'Invalid API key';
+            if (apiError.message.includes('PERMISSION_DENIED')) {
+                errorMessage = 'API key does not have necessary permissions';
+            } else if (apiError.message.includes('API key not valid')) {
+                errorMessage = 'API key is invalid or expired';
+            } else if (apiError.message.includes('quota exceeded')) {
+                errorMessage = 'API quota exceeded';
+            }
+            
+            res.status(400).json({
+                success: false,
+                error: errorMessage
+            });
+        }
+
+    } catch (error) {
+        console.error('❌ Test API key endpoint error:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to test API key'
+        });
+    }
+});
+
 // VEO 3 video generation endpoint
 app.post('/generate-video', upload.single('referenceImage'), async (req, res) => {
     try {
