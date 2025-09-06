@@ -1,5 +1,5 @@
 // Vercel API Route untuk video generation
-module.exports = async function handler(req, res) {
+const handler = async (req, res) => {
   // Enable CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -94,3 +94,5 @@ module.exports = async function handler(req, res) {
     }
   }
 };
+
+export default handler;

@@ -1,5 +1,5 @@
 // Vercel API Route untuk test API key
-export default async function handler(req, res) {
+const handler = async (req, res) => {
   // Enable CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -10,10 +10,14 @@ export default async function handler(req, res) {
     return res.status(200).end();
   }
   
+  console.log('🔍 API test-api-key called with method:', req.method);
+  
   if (req.method !== 'POST') {
+    console.log('❌ Wrong method:', req.method);
     return res.status(405).json({ 
       error: 'Method not allowed',
       method: req.method,
+      message: 'Use POST method',
       timestamp: new Date().toISOString()
     });
   }
@@ -21,7 +25,7 @@ export default async function handler(req, res) {
   try {
     const { apiKey } = req.body;
     
-    console.log('🔍 Testing API Key:', { hasApiKey: !!apiKey });
+    console.log('🔍 Testing API Key:', { hasApiKey: !!apiKey, bodyKeys: Object.keys(req.body || {}) });
     
     if (!apiKey) {
       return res.status(400).json({
@@ -31,6 +35,7 @@ export default async function handler(req, res) {
     }
 
     // Test dengan Gemini API
+    console.log('📡 Making request to Gemini API...');
     const response = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
       {
@@ -48,18 +53,23 @@ export default async function handler(req, res) {
       }
     );
 
-    console.log('✅ Gemini API Response:', response.status);
+    console.log('✅ Gemini API Response status:', response.status);
 
     if (response.ok) {
+      const data = await response.json();
+      console.log('✅ API key test successful');
       res.status(200).json({
         success: true,
-        message: 'API key is valid'
+        message: 'API key is valid',
+        timestamp: new Date().toISOString()
       });
     } else {
       const errorData = await response.json().catch(() => ({}));
+      console.log('❌ API key test failed:', response.status, errorData);
       res.status(400).json({
         success: false,
-        error: errorData.error?.message || 'Invalid API key'
+        error: errorData.error?.message || 'Invalid API key',
+        status: response.status
       });
     }
 
@@ -67,7 +77,10 @@ export default async function handler(req, res) {
     console.error('❌ API key test failed:', error);
     res.status(500).json({
       success: false,
-      error: 'API key test failed: ' + error.message
+      error: 'API key test failed: ' + error.message,
+      timestamp: new Date().toISOString()
     });
   }
-}
+};
+
+export default handler;
