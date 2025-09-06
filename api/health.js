@@ -1,5 +1,15 @@
 // Vercel API Route untuk health check
-export default function handler(req, res) {
+module.exports = function handler(req, res) {
+  // Enable CORS
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  
+  // Handle preflight request
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+  
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -10,4 +20,4 @@ export default function handler(req, res) {
     timestamp: new Date().toISOString(),
     environment: 'production'
   });
-}
+};
