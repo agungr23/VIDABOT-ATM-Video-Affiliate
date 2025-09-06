@@ -1,5 +1,5 @@
 // Vercel API Route untuk test API key
-module.exports = async function handler(req, res) {
+export default async function handler(req, res) {
   // Enable CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -11,11 +11,17 @@ module.exports = async function handler(req, res) {
   }
   
   if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
+    return res.status(405).json({ 
+      error: 'Method not allowed',
+      method: req.method,
+      timestamp: new Date().toISOString()
+    });
   }
 
   try {
     const { apiKey } = req.body;
+    
+    console.log('🔍 Testing API Key:', { hasApiKey: !!apiKey });
     
     if (!apiKey) {
       return res.status(400).json({
@@ -42,6 +48,8 @@ module.exports = async function handler(req, res) {
       }
     );
 
+    console.log('✅ Gemini API Response:', response.status);
+
     if (response.ok) {
       res.status(200).json({
         success: true,
@@ -56,10 +64,10 @@ module.exports = async function handler(req, res) {
     }
 
   } catch (error) {
-    console.error('API key test failed:', error);
+    console.error('❌ API key test failed:', error);
     res.status(500).json({
       success: false,
-      error: 'API key test failed'
+      error: 'API key test failed: ' + error.message
     });
   }
-};
+}
