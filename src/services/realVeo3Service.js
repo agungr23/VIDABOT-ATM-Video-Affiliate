@@ -319,29 +319,39 @@ class RealVEO3Service {
         throw new Error('No result received from Vercel API');
       }
 
-      // Convert base64 video data to blob URL
+      // Convert base64 video data to data URL (more reliable than blob URL)
+      const videoDataUrl = `data:${result.mimeType || 'video/mp4'};base64,${result.videoData}`;
+      
+      // Also create blob for download functionality
       const videoBlob = this.base64ToBlob(result.videoData, result.mimeType);
-      const videoUrl = URL.createObjectURL(videoBlob);
+      const blobUrl = URL.createObjectURL(videoBlob);
 
-      console.log('✅ Vercel API generation completed successfully');
+      console.log('✅ Vercel API generation completed successfully', {
+        dataUrlLength: videoDataUrl.length,
+        blobSize: videoBlob.size,
+        videoDataLength: result.videoData?.length
+      });
 
       return {
         success: true,
         job_id: 'vercel_job_' + Date.now(),
         status: 'completed',
         video_file: result.downloadUrl,
-        video_url: videoUrl,
-        videoUrl: videoUrl,
+        video_url: videoDataUrl, // Use data URL for reliable playback
+        videoUrl: videoDataUrl,  // Ensure compatibility
         video_blob: videoBlob,
-        thumbnail_url: 'https://via.placeholder.com/640x360/4F46E5/FFFFFF?text=Vercel+API+Video',
+        blob_url: blobUrl, // Keep blob URL for download
+        thumbnail_url: 'https://via.placeholder.com/640x360/4F46E5/FFFFFF?text=Real+Video',
         duration: result.duration || 8,
         created_at: new Date().toISOString(),
         config: params.config,
         prompt: params.prompt,
-        enhanced_prompt: `Vercel API Generated: ${params.prompt}`,
+        enhanced_prompt: `Real AI Generated: ${params.prompt}`,
         used_imagen: !params.referenceImage,
-        description: result.description || 'Video generated using Vercel API Routes',
-        model: result.model || 'veo-3.0-vercel-api'
+        description: result.description || 'Real video generated using AI + FFmpeg approach',
+        model: result.model || 'ai-ffmpeg-real-generator',
+        method: result.method || 'real-video-generation',
+        isRealVideo: true
       };
 
     } catch (error) {
